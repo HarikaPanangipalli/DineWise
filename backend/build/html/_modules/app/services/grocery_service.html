@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>app.services.grocery_service &#8212; DineWise  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for app.services.grocery_service</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Grocery List Service</span>
+
+<span class="sd">Handles operations related to managing user grocery lists.</span>
+
+<span class="sd">Classes:</span>
+<span class="sd">- GroceryService: Provides methods for grocery list management.</span>
+
+<span class="sd">Methods:</span>
+<span class="sd">- add_item: Adds a new item to the grocery list.</span>
+<span class="sd">- remove_item: Deletes an item from the grocery list.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">app.db.database</span> <span class="kn">import</span> <span class="n">database</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">bson</span> <span class="kn">import</span> <span class="n">ObjectId</span>
+<span class="kn">from</span> <span class="nn">fastapi</span> <span class="kn">import</span> <span class="n">HTTPException</span>
+
+
+
+<div class="viewcode-block" id="GroceryService">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService">[docs]</a>
+<span class="k">class</span> <span class="nc">GroceryService</span><span class="p">:</span>
+<div class="viewcode-block" id="GroceryService.extract_groceries_from_emails">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.extract_groceries_from_emails">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">extract_groceries_from_emails</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emails</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract grocery items from emails&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">all_items</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">for</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">emails</span><span class="p">:</span>
+                <span class="c1"># Make sure email is a dictionary and has a body</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;body&#39;</span> <span class="ow">in</span> <span class="n">email</span><span class="p">:</span>
+                    <span class="n">body</span> <span class="o">=</span> <span class="n">email</span><span class="p">[</span><span class="s1">&#39;body&#39;</span><span class="p">]</span>
+                    
+                    <span class="c1"># Look for the items section</span>
+                    <span class="n">start_marker</span> <span class="o">=</span> <span class="s2">&quot;Ordered items&quot;</span>
+                    <span class="n">end_marker</span> <span class="o">=</span> <span class="s2">&quot;Subtotal&quot;</span>
+                    
+                    <span class="n">start_idx</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">start_marker</span><span class="p">)</span>
+                    <span class="n">end_idx</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">end_marker</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">start_idx</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">end_idx</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="n">items_section</span> <span class="o">=</span> <span class="n">body</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">]</span>
+                        
+                        <span class="c1"># Pattern to match item name, quantity and price</span>
+                        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;([^\n]+?)\n\s*(\d+)\s*\$(\d+\.\d</span><span class="si">{2}</span><span class="s1">)&#39;</span>
+                        
+                        <span class="c1"># Find all matches</span>
+                        <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">items_section</span><span class="p">)</span>
+                        
+                        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+                            <span class="n">item</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="s1">&#39;item_name&#39;</span><span class="p">:</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                                <span class="s1">&#39;quantity&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)),</span>
+                                <span class="s1">&#39;price&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+                            <span class="p">}</span>
+                            <span class="n">all_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">all_items</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error extracting groceries: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to extract groceries: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GroceryService.store_consolidated_groceries">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.store_consolidated_groceries">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">store_consolidated_groceries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extracted_emails</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">first_email_date</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">last_email_date</span><span class="p">:</span> <span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Store consolidated groceries from multiple emails&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Extract items from emails</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_groceries_from_emails</span><span class="p">(</span><span class="n">extracted_emails</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+            
+            <span class="c1"># Consolidate items</span>
+            <span class="n">consolidated_items</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                <span class="n">item_name</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;item_name&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">item_name</span> <span class="ow">in</span> <span class="n">consolidated_items</span><span class="p">:</span>
+                    <span class="n">consolidated_items</span><span class="p">[</span><span class="n">item_name</span><span class="p">][</span><span class="s1">&#39;quantity&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;quantity&#39;</span><span class="p">]</span>
+                    <span class="c1"># consolidated_items[item_name][&#39;total&#39;] = (</span>
+                    <span class="c1">#     consolidated_items[item_name][&#39;quantity&#39;] * </span>
+                    <span class="c1">#     consolidated_items[item_name][&#39;price&#39;]</span>
+                    <span class="c1"># )</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">consolidated_items</span><span class="p">[</span><span class="n">item_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;item_name&#39;</span><span class="p">:</span> <span class="n">item_name</span><span class="p">,</span>
+                        <span class="s1">&#39;quantity&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;quantity&#39;</span><span class="p">],</span>
+                        <span class="s1">&#39;price&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;price&#39;</span><span class="p">],</span>
+                        <span class="c1"># &#39;total&#39;: item[&#39;quantity&#39;] * item[&#39;price&#39;]</span>
+                    <span class="p">}</span>
+            
+            <span class="c1"># Create grocery list document</span>
+            <span class="n">grocery_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span>
+                <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">consolidated_items</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                <span class="s2">&quot;source_emails&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">email</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">email</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+                    <span class="k">for</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">extracted_emails</span>
+                <span class="p">],</span>
+                <span class="s2">&quot;extraction_date&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+                <span class="s2">&quot;first_email_date&quot;</span><span class="p">:</span> <span class="n">first_email_date</span><span class="p">,</span>
+                <span class="s2">&quot;last_email_date&quot;</span><span class="p">:</span> <span class="n">last_email_date</span><span class="p">,</span>
+                <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+                <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+            <span class="p">}</span>
+            
+            <span class="c1"># Store in database</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">insert_one</span><span class="p">(</span><span class="n">grocery_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">inserted_id</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Failed to store grocery list&quot;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">grocery_data</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error storing groceries: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to store consolidated groceries: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GroceryService.get_user_grocery_lists">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.get_user_grocery_lists">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_user_grocery_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all grocery lists for a user&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find</span><span class="p">({</span><span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">})</span>
+            <span class="n">grocery_lists</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cursor</span><span class="o">.</span><span class="n">to_list</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            
+            <span class="c1"># Convert ObjectId to string and format the response</span>
+            <span class="n">formatted_lists</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">grocery</span> <span class="ow">in</span> <span class="n">grocery_lists</span><span class="p">:</span>
+                <span class="n">formatted_grocery</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">grocery</span><span class="p">[</span><span class="s2">&quot;_id&quot;</span><span class="p">]),</span>  <span class="c1"># Convert ObjectId to string</span>
+                    <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;items&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                    <span class="s2">&quot;source_emails&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source_emails&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                    <span class="s2">&quot;extraction_date&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extraction_date&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">)</span>
+                <span class="p">}</span>
+                <span class="n">formatted_lists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">formatted_grocery</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">formatted_lists</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error fetching grocery lists: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to fetch grocery lists: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="GroceryService.get_last_email_date">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.get_last_email_date">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_email_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the last email date from the most recent grocery list&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">latest_grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">},</span>
+                <span class="n">sort</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;last_email_date&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">latest_grocery</span> <span class="ow">and</span> <span class="s1">&#39;last_email_date&#39;</span> <span class="ow">in</span> <span class="n">latest_grocery</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">latest_grocery</span><span class="p">[</span><span class="s1">&#39;last_email_date&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error fetching last email date: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+        
+<div class="viewcode-block" id="GroceryService.get_grocery_by_id">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.get_grocery_by_id">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_grocery_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grocery_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get grocery list by ID&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Find grocery list by ID and user_id</span>
+            <span class="n">grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one</span><span class="p">({</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">grocery_id</span><span class="p">,</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span>
+            <span class="p">})</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">grocery</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                    <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span>
+                    <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Grocery list not found&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Format response</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">grocery</span><span class="p">[</span><span class="s2">&quot;_id&quot;</span><span class="p">]),</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;items&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                <span class="s2">&quot;first_email_date&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;first_email_date&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;last_email_date&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;last_email_date&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">)</span>
+            <span class="p">}</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error fetching grocery list: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to fetch grocery list: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="GroceryService.update_grocery_list">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.update_grocery_list">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">update_grocery_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grocery_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_item</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add new item to existing grocery list&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Find the existing grocery list</span>
+            <span class="n">grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one</span><span class="p">({</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">grocery_id</span><span class="p">,</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span>
+            <span class="p">})</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">grocery</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                    <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span>
+                    <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Grocery list not found&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Add the new item to the items array</span>
+            <span class="n">updated_grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one_and_update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">grocery_id</span><span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;$push&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">new_item</span><span class="p">},</span>
+                    <span class="s2">&quot;$set&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()}</span>
+                <span class="p">},</span>
+                <span class="n">return_document</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Format response</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">updated_grocery</span><span class="p">[</span><span class="s2">&quot;_id&quot;</span><span class="p">]),</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">updated_grocery</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">updated_grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;items&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">updated_grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">updated_grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">)</span>
+            <span class="p">}</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error updating grocery list: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to update grocery list: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="GroceryService.delete_grocery_item">
+<a class="viewcode-back" href="../../../app.services.html#app.services.grocery_service.GroceryService.delete_grocery_item">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">delete_grocery_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grocery_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete an item from grocery list&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Find the grocery list and verify ownership</span>
+            <span class="n">grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one</span><span class="p">({</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">grocery_id</span><span class="p">,</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span>
+            <span class="p">})</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">grocery</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                    <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span>
+                    <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Grocery list not found&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Remove the item at the specified index</span>
+            <span class="n">updated_grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one_and_update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">grocery_id</span><span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;$unset&quot;</span><span class="p">:</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;items.</span><span class="si">{</span><span class="n">item_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+                    <span class="s2">&quot;$set&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()}</span>
+                <span class="p">},</span>
+                <span class="n">return_document</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Pull null values created by unset</span>
+            <span class="n">updated_grocery</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span><span class="o">.</span><span class="n">find_one_and_update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">grocery_id</span><span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;$pull&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+                <span class="p">},</span>
+                <span class="n">return_document</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">updated_grocery</span><span class="p">[</span><span class="s2">&quot;_id&quot;</span><span class="p">]),</span>
+                <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">updated_grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;items&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="n">updated_grocery</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">)</span>
+            <span class="p">}</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error deleting grocery item: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to delete grocery item: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">DineWise</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Santhosh Reddy Mallugari, Naga Venkata Kanaka Satya Harika, Dheeraj Reddy Nalubolu.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>app.db.database &#8212; DineWise  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for app.db.database</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Database module for the DineWise application.</span>
+
+<span class="sd">This module sets up a connection to MongoDB using the `motor` library and provides</span>
+<span class="sd">references to collections used throughout the application.</span>
+
+<span class="sd">Attributes:</span>
+<span class="sd">    db_client (AsyncIOMotorClient): The MongoDB client instance.</span>
+<span class="sd">    database (AsyncIOMotorDatabase): The main MongoDB database instance.</span>
+<span class="sd">    users_collection (AsyncIOMotorCollection): Collection for storing user data.</span>
+<span class="sd">    groceries_collection (AsyncIOMotorCollection): Collection for grocery data.</span>
+<span class="sd">    meal_plans_collection (AsyncIOMotorCollection): Collection for meal plans.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">motor.motor_asyncio</span> <span class="kn">import</span> <span class="n">AsyncIOMotorClient</span>
+<span class="kn">from</span> <span class="nn">app.core.config</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">certifi</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Database">
+<a class="viewcode-back" href="../../../app.db.html#app.db.database.Database">[docs]</a>
+<span class="k">class</span> <span class="nc">Database</span><span class="p">:</span>
+    <span class="n">client</span><span class="p">:</span> <span class="n">AsyncIOMotorClient</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Database.connect_to_database">
+<a class="viewcode-back" href="../../../app.db.html#app.db.database.Database.connect_to_database">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">connect_to_database</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">AsyncIOMotorClient</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">mongodb_url</span><span class="p">,</span>
+                <span class="n">serverSelectionTimeoutMS</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+                <span class="n">ssl</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">tlsCAFile</span><span class="o">=</span><span class="n">certifi</span><span class="o">.</span><span class="n">where</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">[</span><span class="n">settings</span><span class="o">.</span><span class="n">database_name</span><span class="p">]</span>
+            
+            <span class="c1"># Initialize collections</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">users</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">users</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meal_plans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">meal_plans</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">groceries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">groceries</span>
+            
+            <span class="c1"># Verify the connection</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">admin</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s1">&#39;ping&#39;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully connected to MongoDB Atlas!&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to connect to MongoDB Atlas: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="Database.close_database_connection">
+<a class="viewcode-back" href="../../../app.db.html#app.db.database.Database.close_database_connection">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">close_database_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Closed MongoDB Atlas connection&quot;</span><span class="p">)</span></div>
+</div>
+
+
+<span class="n">database</span> <span class="o">=</span> <span class="n">Database</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">DineWise</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Santhosh Reddy Mallugari, Naga Venkata Kanaka Satya Harika, Dheeraj Reddy Nalubolu.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
