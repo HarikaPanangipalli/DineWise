@@ -8,6 +8,7 @@ on:
 jobs:
   # Format Check for Backend Code
   format-check:
+    name: fmt-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
