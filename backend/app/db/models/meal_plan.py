@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import List
 
+
 class MealPlanInDB(BaseModel):
     """
     Represents a meal plan stored in the database.
@@ -14,6 +15,7 @@ class MealPlanInDB(BaseModel):
         meals (str): JSON string containing structured meal data.
         created_at (datetime): Timestamp when the meal plan was created.
     """
+
     id: str
     user_id: str
     cuisine: str

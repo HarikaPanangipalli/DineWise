@@ -1,19 +1,22 @@
 from abc import ABC, abstractmethod
 import google.generativeai as genai
-#from openai import OpenAI
-#import openai
+
+# from openai import OpenAI
+# import openai
 from app.core.config import settings
 from typing import Optional, Dict, Any
+
 
 class RecommendationStrategy(ABC):
     @abstractmethod
     async def generate_meal_plan(self, preferences: str, grocery_list: str) -> dict:
         pass
 
+
 class GeminiAIStrategy(RecommendationStrategy):
     def __init__(self):
         genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel("gemini-pro")
 
     async def generate_meal_plan(self, preferences: str, grocery_list: str) -> dict:
         try:
@@ -23,7 +26,7 @@ class GeminiAIStrategy(RecommendationStrategy):
                 "model": "gemini",
                 "meal_plan": response.text,
                 "preferences": preferences,
-                "grocery_list": grocery_list
+                "grocery_list": grocery_list,
             }
         except Exception as e:
             raise Exception(f"Gemini meal plan generation failed: {str(e)}")
@@ -59,36 +62,35 @@ class GeminiAIStrategy(RecommendationStrategy):
                 Begin the meal plan with Day 1 and continue until all groceries are used. The meal plan should end only when all groceries have been incorporated into meals.
             """
 
-# class ChatGPTStrategy(RecommendationStrategy):
-#     def __init__(self):
-#         self.model = "gpt-4"
-#         OpenAI.OpenAI = settings.openai_api_key
-#         client = OpenAI()
+    # class ChatGPTStrategy(RecommendationStrategy):
+    #     def __init__(self):
+    #         self.model = "gpt-4"
+    #         OpenAI.OpenAI = settings.openai_api_key
+    #         client = OpenAI()
 
+    #     async def generate_meal_plan(self, preferences: str, grocery_list: str) -> dict:
+    #         try:
+    #             prompt = self._create_prompt(preferences, grocery_list)
 
-#     async def generate_meal_plan(self, preferences: str, grocery_list: str) -> dict:
-#         try:
-#             prompt = self._create_prompt(preferences, grocery_list)
+    #             client = OpenAI()
+    #             client.api_key = settings.openai_api_key
 
-#             client = OpenAI()
-#             client.api_key = settings.openai_api_key
+    #             completion = client.chat.completions.create(
+    #                 model="gpt3",
+    #                 messages=[
+    #                     {"role": "user", "content": prompt}
+    #                 ],
+    #                 max_tokens=1000
+    #             )
 
-#             completion = client.chat.completions.create(
-#                 model="gpt3",
-#                 messages=[
-#                     {"role": "user", "content": prompt}
-#                 ],
-#                 max_tokens=1000
-#             )
-      
-#             return {
-#                 "model": "chatgpt",
-#                 "meal_plan": completion.choices[0].message,
-#                 "preferences": preferences,
-#                 "grocery_list": grocery_list
-#             }
-#         except Exception as e:
-#             raise Exception(f"ChatGPT meal plan generation failed: {str(e)}")
+    #             return {
+    #                 "model": "chatgpt",
+    #                 "meal_plan": completion.choices[0].message,
+    #                 "preferences": preferences,
+    #                 "grocery_list": grocery_list
+    #             }
+    #         except Exception as e:
+    #             raise Exception(f"ChatGPT meal plan generation failed: {str(e)}")
 
     def _create_prompt(self, combined_preferences: str, grocery_list: str) -> str:
         return f"""
@@ -121,6 +123,7 @@ class GeminiAIStrategy(RecommendationStrategy):
                 Begin the meal plan with Day 1 and continue until all groceries are used. The meal plan should end only when all groceries have been incorporated into meals.
             """
 
+
 class MealPlanningService:
     def __init__(self):
         self._strategy: Optional[RecommendationStrategy] = None
@@ -134,14 +137,8 @@ class MealPlanningService:
         """Generate meal plan using current strategy"""
         if not self._strategy:
             raise Exception("No meal planning strategy selected")
-        
+
         try:
             return await self._strategy.generate_meal_plan(preferences, grocery_list)
         except Exception as e:
             raise Exception(f"Failed to generate meal plan: {str(e)}")
-        
-
-
-
-
-        

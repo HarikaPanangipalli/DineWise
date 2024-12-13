@@ -15,6 +15,7 @@ from app.core.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Connect to the database
@@ -27,12 +28,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Startup error: {str(e)}")
         raise
-    
+
     yield
-    
+
     # Shutdown: Clean up resources
     logger.info("Shutting down...")
     await database.close_database_connection()
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -49,37 +51,38 @@ app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
 # Protected routes (require authentication)
 app.include_router(
-    user.router, 
-    prefix="/users", 
-    tags=["Users"], 
-    dependencies=[Depends(get_current_active_user)]
+    user.router,
+    prefix="/users",
+    tags=["Users"],
+    dependencies=[Depends(get_current_active_user)],
 )
 app.include_router(
-    meal_planning.router, 
-    prefix="/meal-planning", 
-    tags=["Meal Planning"], 
-    dependencies=[Depends(get_current_active_user)]
+    meal_planning.router,
+    prefix="/meal-planning",
+    tags=["Meal Planning"],
+    dependencies=[Depends(get_current_active_user)],
 )
 app.include_router(
-    grocery.router, 
-    prefix="/grocery", 
-    tags=["Grocery"], 
-    dependencies=[Depends(get_current_active_user)]
+    grocery.router,
+    prefix="/grocery",
+    tags=["Grocery"],
+    dependencies=[Depends(get_current_active_user)],
 )
 
 app.include_router(
-    gmail.router, 
-    prefix="/gmail", 
-    tags=["Gmail"], 
-    dependencies=[Depends(get_current_active_user)]
+    gmail.router,
+    prefix="/gmail",
+    tags=["Gmail"],
+    dependencies=[Depends(get_current_active_user)],
 )
+
 
 @app.get("/")
 async def root():
     return {"message": "Welcome to DineWise API"}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
-

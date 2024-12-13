@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List
 
+
 class GroceryInDB:
     """
     Represents a grocery item stored in the database.
@@ -14,6 +15,7 @@ class GroceryInDB:
         created_at (datetime): Timestamp when the entry was created.
         updated_at (datetime): Timestamp when the entry was last updated.
     """
+
     def __init__(
         self,
         id: str,
@@ -22,7 +24,7 @@ class GroceryInDB:
         source_emails: List[str],  # List of email IDs from which items were extracted
         extraction_date: datetime,
         created_at: datetime = datetime.utcnow(),
-        updated_at: datetime = datetime.utcnow()
+        updated_at: datetime = datetime.utcnow(),
     ):
         self.id = id
         self.user_id = user_id
