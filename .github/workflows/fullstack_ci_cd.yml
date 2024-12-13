@@ -83,7 +83,7 @@ jobs:
 
       - name: Deploy Backend to Server
         env:
-          BACKEND_SERVER_IP: ${{ secrets.BACK_END_IP }}
+          BACKEND_SERVER_IP: ${{ secrets.BACKEND_SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$BACKEND_SERVER_IP <<EOF
@@ -111,7 +111,7 @@ jobs:
 
       - name: Deploy Frontend to Server
         env:
-          FRONTEND_SERVER_IP: ${{ secrets.FRONT_END_IP }}
+          FRONTEND_SERVER_IP: ${{ secrets.FRONTEND_SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$FRONTEND_SERVER_IP <<EOF
