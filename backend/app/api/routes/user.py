@@ -10,16 +10,20 @@ auth_service = AuthService()
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
 @router.put("/me", response_model=User)
-async def update_user(user_update: UserUpdate, current_user: User = Depends(get_current_user)):
+async def update_user(
+    user_update: UserUpdate, current_user: User = Depends(get_current_user)
+):
     # Convert the `UserUpdate` object to a dictionary
-    updated_data = user_update.dict(exclude_unset=True)  # Exclude fields not explicitly set
-    
+    updated_data = user_update.dict(
+        exclude_unset=True
+    )  # Exclude fields not explicitly set
+
     # Update the user in the database
     updated_user = await auth_service.update_user(current_user.id, updated_data)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Convert UserInDB to User for the response
     return User(**updated_user.dict())
-

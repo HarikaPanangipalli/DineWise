@@ -30,7 +30,7 @@ class GmailCredentials:
         scopes: List[str],
         expiry: Optional[datetime],
         created_at: datetime = datetime.utcnow(),
-        updated_at: datetime = datetime.utcnow()
+        updated_at: datetime = datetime.utcnow(),
     ):
         self.id = id
         self.user_id = user_id

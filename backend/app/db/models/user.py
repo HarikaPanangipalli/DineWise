@@ -30,10 +30,7 @@ class UserInDB(BaseModel):
     updated_at: datetime = datetime.utcnow()
 
     model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
+        from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()}
     )
 
     def update_timestamp(self):

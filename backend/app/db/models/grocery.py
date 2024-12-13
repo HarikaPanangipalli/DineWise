@@ -22,7 +22,7 @@ class GroceryInDB:
         source_emails: List[str],  # List of email IDs from which items were extracted
         extraction_date: datetime,
         created_at: datetime = datetime.utcnow(),
-        updated_at: datetime = datetime.utcnow()
+        updated_at: datetime = datetime.utcnow(),
     ):
         self.id = id
         self.user_id = user_id

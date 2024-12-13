@@ -2,8 +2,10 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, datetime
 
+
 class GroceryBase(BaseModel):
     items: List[str]
+
 
 class GroceryCreate(GroceryBase):
     date: date

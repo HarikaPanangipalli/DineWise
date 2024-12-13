@@ -8,4 +8,5 @@ class JSONEncoder:
             if isinstance(o, ObjectId):
                 return str(o)
             return jsonable_encoder(o)
+
         return convert(obj)
