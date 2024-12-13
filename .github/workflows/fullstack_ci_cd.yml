@@ -44,10 +44,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # - name: Run Backend Tests
-      #   working-directory: ./backend
-      #   run: |
-      #     pytest
+      # Uncomment tests if required
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: |
+          pytest
 
   # Build Frontend
   build-frontend:
@@ -81,6 +82,23 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
+      - name: Verify Backend Server SSH Connection
+        env:
+          BACKEND_SERVER: ${{ secrets.BACKEND_SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -v -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$BACKEND_SERVER "echo 'SSH connection successful'"
+
+      - name: Zip Repository
+        run: zip -r project.zip .
+
+      - name: Copy to Backend Ubuntu Server
+        env:
+          BACKEND_SERVER: ${{ secrets.BACKEND_SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no project.zip $SERVER_USER@$BACKEND_SERVER:~/
+
       - name: Deploy Backend to Server
         env:
           BACKEND_SERVER: ${{ secrets.BACKEND_SERVER_IP }}
@@ -88,10 +106,11 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$BACKEND_SERVER <<EOF
             sudo apt-get update
-            sudo apt-get install -y python3 python3-pip
-            cd ~/backend
+            sudo apt-get install -y python3 python3-pip unzip
+            unzip -o ~/project.zip -d ~/project
+            cd ~/project/backend
             pip install -r requirements.txt
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/backend.log 2>&1 &
           EOF
 
   # Deploy Frontend to Frontend Server
@@ -101,14 +120,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Debug Variables
-        run: |
-          echo "FRONTEND_SERVER=$FRONTEND_SERVER_IP"
-          echo "SERVER_USER=$SERVER_USER"
-        env:
-          FRONTEND_SERVER: ${{ secrets.FRONTEND_SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-
       - name: Set up SSH Key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -117,6 +128,13 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
+      - name: Copy to Frontend Ubuntu Server
+        env:
+          FRONTEND_SERVER: ${{ secrets.FRONTEND_SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no project.zip $SERVER_USER@$FRONTEND_SERVER:~/
+
       - name: Deploy Frontend to Server
         env:
           FRONTEND_SERVER: ${{ secrets.FRONTEND_SERVER_IP }}
@@ -124,8 +142,9 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$FRONTEND_SERVER <<EOF
             sudo apt-get update
-            sudo apt-get install -y nodejs npm
-            cd ~/frontend
+            sudo apt-get install -y nodejs npm unzip
+            unzip -o ~/project.zip -d ~/project
+            cd ~/project/frontend
             npm install
-            nohup npm run dev &
+            nohup npm run dev > ~/frontend.log 2>&1 &
           EOF
