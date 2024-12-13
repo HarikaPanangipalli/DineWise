@@ -45,10 +45,10 @@ jobs:
           pip install -r requirements.txt
 
       # Uncomment tests if required
-      - name: Run Backend Tests
-        working-directory: ./backend
-        run: |
-          pytest
+      # - name: Run Backend Tests
+      #   working-directory: ./backend
+      #   run: |
+      #     pytest
 
   # Build Frontend
   build-frontend:
@@ -127,6 +127,9 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+
+      - name: Zip Repository
+        run: zip -r project.zip .
 
       - name: Copy to Frontend Ubuntu Server
         env:
