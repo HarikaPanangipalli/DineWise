@@ -11,10 +11,6 @@ Attributes:
     groceries_collection (AsyncIOMotorCollection): Collection for grocery data.
     meal_plans_collection (AsyncIOMotorCollection): Collection for meal plans.
 """
-<<<<<<< HEAD
-
-=======
->>>>>>> main
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 import logging
@@ -22,10 +18,6 @@ import certifi
 
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> main
 class Database:
     client: AsyncIOMotorClient = None
     db = None
@@ -36,30 +28,17 @@ class Database:
                 settings.mongodb_url,
                 serverSelectionTimeoutMS=5000,
                 ssl=True,
-<<<<<<< HEAD
                 tlsCAFile=certifi.where(),
             )
             self.db = self.client[settings.database_name]
 
-=======
-                tlsCAFile=certifi.where()
-            )
-            self.db = self.client[settings.database_name]
-            
->>>>>>> main
             # Initialize collections
             self.users = self.db.users
             self.meal_plans = self.db.meal_plans
             self.groceries = self.db.groceries
-<<<<<<< HEAD
 
             # Verify the connection
             await self.client.admin.command("ping")
-=======
-            
-            # Verify the connection
-            await self.client.admin.command('ping')
->>>>>>> main
             logger.info("Successfully connected to MongoDB Atlas!")
             return True
         except Exception as e:
@@ -71,9 +50,5 @@ class Database:
             self.client.close()
             logger.info("Closed MongoDB Atlas connection")
 
-<<<<<<< HEAD
 
 database = Database()
-=======
-database = Database()
->>>>>>> main
