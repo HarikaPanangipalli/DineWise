@@ -110,6 +110,10 @@ jobs:
             unzip -o ~/project.zip -d ~/project
             cp ~/.env ~/project/backend/.env
             cd ~/project/backend
+            if pgrep -f "uvicorn app.main:app" > /dev/null; then
+              echo "Stopping existing backend server..."
+              pgrep -f "uvicorn app.main:app" | xargs kill -9
+            fi
             pip install --break-system-packages -r requirements.txt
             nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/backend.log 2>&1 &
           EOF
@@ -160,6 +164,7 @@ jobs:
             cp ~/.env ~/project/frontend/.env
             cp .env ~/project/frontend/
             cd ~/project/frontend
+            export NODE_OPTIONS="--max-old-space-size=4096"
             npm install
             nohup npm run dev > ~/frontend.log 2>&1 &
           EOF
