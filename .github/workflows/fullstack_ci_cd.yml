@@ -108,6 +108,7 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y python3 python3-pip unzip
             unzip -o ~/project.zip -d ~/project
+            cp ~/.env ~/project/backend/.env
             cd ~/project/backend
             pip install --break-system-packages -r requirements.txt
             nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/backend.log 2>&1 &
@@ -146,7 +147,18 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$FRONTEND_SERVER <<EOF
             sudo apt-get update
             sudo apt-get install -y nodejs npm unzip
+            # Add temporary swap space
+            if sudo swapon --show | grep -q '/var/swap.1'; then
+              sudo swapoff /var/swap.1
+              sudo rm -f /var/swap.1
+            fi
+            sudo /bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024
+            sudo /sbin/mkswap /var/swap.1
+            sudo /sbin/swapon /var/swap.1
+
             unzip -o ~/project.zip -d ~/project
+            cp ~/.env ~/project/frontend/.env
+            cp .env ~/project/frontend/
             cd ~/project/frontend
             npm install
             nohup npm run dev > ~/frontend.log 2>&1 &
