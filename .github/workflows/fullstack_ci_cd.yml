@@ -107,6 +107,8 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$BACKEND_SERVER <<EOF
             sudo apt-get update
             sudo apt-get install -y python3 python3-pip unzip
+            rm -rf ~/project/
+            rm -f ~/project.zip
             unzip -o ~/project.zip -d ~/project
             cp ~/.env ~/project/backend/.env
             cd ~/project/backend
@@ -159,6 +161,9 @@ jobs:
             sudo /bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024
             sudo /sbin/mkswap /var/swap.1
             sudo /sbin/swapon /var/swap.1
+
+            rm -rf ~/project/
+            rm -f ~/project.zip
 
             unzip -o ~/project.zip -d ~/project
             cp ~/.env ~/project/frontend/.env
