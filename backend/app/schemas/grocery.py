@@ -13,6 +13,7 @@ class GroceryCreate(GroceryBase):
     class Config:
         from_attributes = True
 
+
 class GroceryResponse(GroceryBase):
     id: str
     user_id: str
@@ -21,11 +22,13 @@ class GroceryResponse(GroceryBase):
     class Config:
         from_attributes = True
 
+
 class GroceryUpdate(BaseModel):
     items: List[str]
 
     class Config:
         from_attributes = True
+
 
 class GroceryInDB(BaseModel):
     id: str
@@ -39,10 +42,12 @@ class GroceryInDB(BaseModel):
     class Config:
         from_attributes = True
 
+
 class GroceryItem(BaseModel):
     item_name: str
     quantity: int
     price: Optional[float] = None
+
 
 class GroceryListResponse(BaseModel):
     id: str
@@ -55,6 +60,7 @@ class GroceryListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class GroceryListsResponse(BaseModel):
     status: str

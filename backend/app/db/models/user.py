@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 
+
 class UserPreferencesInDB(BaseModel):
     """
     Represents user preferences and dietary restrictions.
@@ -12,12 +13,14 @@ class UserPreferencesInDB(BaseModel):
         allergies (List[str]): List of food allergies.
         cooking_skill_level (str): User's cooking skill level (e.g., beginner, intermediate, expert).
     """
+
     cuisine_preferences: List[str] = []
     dietary_restrictions: List[str] = []
     allergies: List[str] = []
     cooking_skill_level: str = "intermediate"
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class UserInDB(BaseModel):
     id: str

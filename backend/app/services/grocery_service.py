@@ -10,6 +10,7 @@ Methods:
 - add_item: Adds a new item to the grocery list.
 - remove_item: Deletes an item from the grocery list.
 """
+
 from app.db.database import database
 from datetime import datetime
 import uuid
@@ -158,6 +159,7 @@ class GroceryService:
         except Exception as e:
             print(f"Error fetching last email date: {str(e)}")
             return None
+
     async def get_grocery_by_id(self, grocery_id: str, user_id: str) -> dict:
         """Get grocery list by ID"""
         try:

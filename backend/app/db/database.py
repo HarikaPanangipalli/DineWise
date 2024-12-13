@@ -11,12 +11,14 @@ Attributes:
     groceries_collection (AsyncIOMotorCollection): Collection for grocery data.
     meal_plans_collection (AsyncIOMotorCollection): Collection for meal plans.
 """
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 import logging
 import certifi
 
 logger = logging.getLogger(__name__)
+
 
 class Database:
     client: AsyncIOMotorClient = None

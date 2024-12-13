@@ -6,6 +6,7 @@ from app.api.dependencies import get_current_user
 router = APIRouter()
 auth_service = AuthService()
 
+
 @router.get("/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user

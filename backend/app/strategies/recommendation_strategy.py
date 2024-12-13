@@ -123,6 +123,7 @@ class GeminiAIStrategy(RecommendationStrategy):
                 Begin the meal plan with Day 1 and continue until all groceries are used. The meal plan should end only when all groceries have been incorporated into meals.
             """
 
+
 class MealPlanningService:
     def __init__(self):
         self._strategy: Optional[RecommendationStrategy] = None

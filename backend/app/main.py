@@ -15,6 +15,7 @@ from app.core.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Connect to the database
@@ -33,6 +34,7 @@ async def lifespan(app: FastAPI):
     # Shutdown: Clean up resources
     logger.info("Shutting down...")
     await database.close_database_connection()
+
 
 app = FastAPI(lifespan=lifespan)
 

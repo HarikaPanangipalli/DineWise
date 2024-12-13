@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+
 class GmailCredentials:
     """
     Represents Gmail OAuth2 credentials for a user.
@@ -18,6 +19,7 @@ class GmailCredentials:
         created_at (datetime): Timestamp when the credentials were created.
         updated_at (datetime): Timestamp when the credentials were last updated.
     """
+
     def __init__(
         self,
         id: str,

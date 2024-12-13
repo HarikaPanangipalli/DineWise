@@ -88,6 +88,7 @@ class GmailService:
                     print("Generating new credentials")
                     import socket
                     import asyncio
+
                     def find_free_port():
                         """Find a free port between 8003-8010"""
                         for port in range(8003, 8011):

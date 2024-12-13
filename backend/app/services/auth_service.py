@@ -20,10 +20,12 @@ from fastapi import HTTPException
 import uuid
 import jwt
 
+
 class AuthService:
     """
     Service for handling authentication-related logic.
     """
+
     def __init__(self):
         self.secret_key = settings.secret_key
         self.algorithm = settings.algorithm
@@ -67,6 +69,7 @@ class AuthService:
         if not verify_password(password, user.hashed_password):
             return False
         return user
+
     async def update_password(self, user_id: str, password_update: PasswordUpdate):
         try:
             user = await database.users.find_one({"id": user_id})
@@ -219,6 +222,7 @@ class AuthService:
             return UserInDB(**updated_user)  # Return the updated user as UserInDB
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
     async def verify_token(self, token: str):
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])

@@ -1,6 +1,7 @@
 from bson import ObjectId
 from fastapi.encoders import jsonable_encoder
 
+
 class JSONEncoder:
     @staticmethod
     def encode(obj):

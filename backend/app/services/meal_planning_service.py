@@ -16,6 +16,7 @@ import uuid
 from bson import ObjectId
 import re
 
+
 class MealPlanningService:
     def __init__(self):
         self._strategy = None
