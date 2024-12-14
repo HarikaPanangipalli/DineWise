@@ -39,7 +39,7 @@ async def extract_and_store_groceries(
             )
 
         # Fetch emails with grocery orders
-        query = "from:vikramaditya549@gmail.com"
+        query = "from:harika.naga12@gmail.com"
         emails, first_email_date, last_email_date = await gmail_service.fetch_emails(
             query=query, last_email_date_extracted=last_email_date_extracted
         )
