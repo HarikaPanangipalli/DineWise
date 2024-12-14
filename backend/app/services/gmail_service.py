@@ -178,7 +178,6 @@ class GmailService:
                 status_code=500, detail=f"Failed to initialize Gmail service: {str(e)}"
             )
 
-
     async def fetch_emails(self, query: str, last_email_date_extracted: str = None):
         """Fetch emails based on query"""
         try:
