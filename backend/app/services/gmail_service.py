@@ -106,11 +106,18 @@ class GmailService:
 
                     try:
                         port = find_free_port()
+
+                        # Dynamically determine the redirect URI
+                        if settings.env == "production":
+                            redirect_uri = f"http://{settings.server_host}:{settings.server_port}/oauth2callback"
+                        else:
+                            redirect_uri = f"http://localhost:{port}/"
+
                         client_config = {
                             "installed": {
                                 "client_id": settings.gmail_client_id,
                                 "client_secret": settings.gmail_client_secret,
-                                "redirect_uris": [f"http://localhost:{port}/"],
+                                "redirect_uris": [redirect_uri],
                                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                                 "token_uri": "https://oauth2.googleapis.com/token",
                             }
@@ -119,7 +126,7 @@ class GmailService:
                         flow = InstalledAppFlow.from_client_config(
                             client_config,
                             self.SCOPES,
-                            redirect_uri=f"http://localhost:{port}/",
+                            redirect_uri=redirect_uri,
                         )
 
                         auth_url, _ = flow.authorization_url(
@@ -127,6 +134,7 @@ class GmailService:
                             include_granted_scopes="true",
                             prompt="consent select_account",
                         )
+                        print(f"Authorization URL: {auth_url}")
 
                         self.creds = await asyncio.wait_for(
                             asyncio.to_thread(
@@ -138,7 +146,7 @@ class GmailService:
                                 success_message="Authentication successful! You can close this window.",
                                 open_browser_new=2,
                             ),
-                            timeout=45,
+                            timeout=120,
                         )
                     except Exception as e:
                         print(f"Authentication error: {str(e)}")
@@ -169,6 +177,7 @@ class GmailService:
             raise HTTPException(
                 status_code=500, detail=f"Failed to initialize Gmail service: {str(e)}"
             )
+
 
     async def fetch_emails(self, query: str, last_email_date_extracted: str = None):
         """Fetch emails based on query"""

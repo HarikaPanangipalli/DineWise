@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     gemini_api_key: str
     openai_api_key: str
     frontend_base_url: str
+    server_host: str
+    server_port: str
 
     class Config:
         env_file = ".env"
