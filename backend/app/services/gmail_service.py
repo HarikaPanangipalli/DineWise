@@ -25,6 +25,7 @@ from app.core.config import settings
 import re
 from app.api.dependencies import get_current_user
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 
 class GmailService:
@@ -169,84 +170,80 @@ class GmailService:
                 status_code=500, detail=f"Failed to initialize Gmail service: {str(e)}"
             )
 
-    async def fetch_emails(
-        self, query: str, last_email_date_extracted: datetime = None
-    ):
+    async def fetch_emails(self, query: str, last_email_date_extracted: str = None):
         """Fetch emails based on query"""
         try:
             if not self.service:
                 await self.initialize_service()
 
-            # Build the query with date range
+            # Parse last_email_date_extracted if provided
             if last_email_date_extracted:
-                full_query = f"{query} after:{last_email_date_extracted}"
+                # Convert string to offset-naive datetime object
+                last_email_date_extracted = datetime.strptime(last_email_date_extracted, '%Y/%m/%dT%H:%M:%S')
+                # Add UTC timezone to make it offset-aware
+                last_email_date_extracted = last_email_date_extracted.replace(tzinfo=timezone.utc)
+                date_part = last_email_date_extracted.strftime('%Y/%m/%d')
+                full_query = f'{query} after:{date_part}'
             else:
                 # Default to last 7 days if no last email date
-                date_from = (datetime.now() - timedelta(days=7)).strftime("%Y/%m/%d")
-                full_query = f"{query} after:{date_from}"
+                date_from = (datetime.now() - timedelta(days=7)).strftime('%Y/%m/%d')
+                full_query = f'{query} after:{date_from}'
 
             print(full_query)
+            results = self.service.users().messages().list(
+                userId='me',
+                q=full_query,
+                maxResults=50
+            ).execute()
 
-            results = (
-                self.service.users()
-                .messages()
-                .list(userId="me", q=full_query, maxResults=50)
-                .execute()
-            )
-
-            messages = results.get("messages", [])
+            messages = results.get('messages', [])
             emails_data = []
             email_dates = []
 
             for message in messages:
-                msg = (
-                    self.service.users()
-                    .messages()
-                    .get(userId="me", id=message["id"], format="full")
-                    .execute()
-                )
+                msg = self.service.users().messages().get(
+                    userId='me',
+                    id=message['id'],
+                    format='full'
+                ).execute()
 
-                headers = msg["payload"]["headers"]
-                subject = next(
-                    (h["value"] for h in headers if h["name"].lower() == "subject"), ""
-                )
-                date_str = next(
-                    (h["value"] for h in headers if h["name"].lower() == "date"), ""
-                )
-                from_email = next(
-                    (h["value"] for h in headers if h["name"].lower() == "from"), ""
-                )
+                headers = msg['payload']['headers']
+                subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), '')
+                date_str = next((h['value'] for h in headers if h['name'].lower() == 'date'), '')
+                from_email = next((h['value'] for h in headers if h['name'].lower() == 'from'), '')
 
                 try:
-                    email_date = datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
+                    # Parse email date with timezone
+                    email_date = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
                     email_dates.append(email_date)
                 except ValueError:
                     # Fallback if date format is different
-                    email_date = datetime.utcnow()
+                    email_date = datetime.utcnow().replace(tzinfo=timezone.utc)
                     email_dates.append(email_date)
 
-                body = self._get_email_body(msg["payload"])
+                body = self._get_email_body(msg['payload'])
 
-                emails_data.append(
-                    {
-                        "id": message["id"],
-                        "subject": subject,
-                        "date": date_str,
-                        "from": from_email,
-                        "body": body,
-                    }
-                )
+                # Filter by time if last_email_date_extracted has time
+                if last_email_date_extracted and email_date <= last_email_date_extracted:
+                    continue  # Skip emails before the specified datetime
+
+                emails_data.append({
+                    'id': message['id'],
+                    'subject': subject,
+                    'date': date_str,
+                    'from': from_email,
+                    'body': body
+                })
 
             # Calculate first and last email dates
-            first_email_date = min(email_dates) if email_dates else datetime.utcnow()
-            last_email_date = max(email_dates) if email_dates else datetime.utcnow()
+            first_email_date = min(email_dates) if email_dates else datetime.utcnow().replace(tzinfo=timezone.utc)
+            last_email_date = max(email_dates) if email_dates else datetime.utcnow().replace(tzinfo=timezone.utc)
+
             return emails_data, first_email_date, last_email_date
 
         except Exception as e:
-            print(f"Error fetching emails: {str(e)}")
-            raise HTTPException(
-                status_code=500, detail=f"Failed to fetch emails: {str(e)}"
-            )
+            print(f"Error fetching emails: {e}")
+            return [], datetime.utcnow().replace(tzinfo=timezone.utc), datetime.utcnow().replace(tzinfo=timezone.utc)
 
     def _get_email_body(self, payload):
         """Extract email body from payload"""
