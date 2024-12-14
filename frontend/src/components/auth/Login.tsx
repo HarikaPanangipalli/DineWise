@@ -1,7 +1,7 @@
 // src/components/auth/Login.tsx
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export const Login = () => {
   const { login } = useAuth();
@@ -15,7 +15,7 @@ export const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(credentials.email, "testpassword123");//credentials.password);
+      await login(credentials.email, credentials.password);//credentials.password);
       // Navigation will be handled in useAuth hook based on Gmail authentication status
     } catch (err) {
       setError('Invalid email or password' + err);

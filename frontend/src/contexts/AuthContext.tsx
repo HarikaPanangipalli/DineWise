@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, Dispatch, SetStateAction } from 'react';
+import { createContext, useState, useEffect, Dispatch, SetStateAction } from 'react';
 import { User } from '../types/auth.types';
 import api from '../services/api';
 

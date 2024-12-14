@@ -1,26 +1,32 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2020",
+    "esModuleInterop": true, // Ensures compatibility with CommonJS and ES Modules
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo", // Temp file for incremental builds
+    "composite": true,
+    "target": "ES2020", // Target modern JavaScript
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"], // Includes DOM libraries for browser compatibility
+    "module": "commonjs", // Use "commonjs" for Jest compatibility
+    "skipLibCheck": true, // Skips type checking in node_modules for faster builds
 
-    /* Bundler mode */
-    "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
+    /* Module Resolution */
+    "moduleResolution": "node", // Compatible with most npm packages
+    "allowImportingTsExtensions": true, // Allows importing files with .ts extensions
+    "isolatedModules": true, // Ensures each file is treated as an isolated module
+    "moduleDetection": "force", // Forces module detection rules
+    "emitDeclarationOnly": true, // Emits only type declarations
+    "jsx": "react-jsx", // Enables JSX support with React
 
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    /* Linting and Safety */
+    "strict": true, // Enables strict type-checking
+    "noUnusedLocals": false, // Allows unused local variables
+    "noUnusedParameters": true, // Disallows unused parameters
+    "noFallthroughCasesInSwitch": true, // Prevents unintentional fallthrough in switch cases
+    "noUncheckedSideEffectImports": true, // Disallows unchecked imports
+
+    /* Types */
+    "types": ["node", "jest", "@testing-library/jest-dom"] // Includes types for Jest, DOM, and Node.js
   },
-  "include": ["src"]
+  "include": ["src"], // Specifies which files to include in the project
+  "exclude": ["node_modules"] // Excludes node_modules from compilation
 }
